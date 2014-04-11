@@ -1,8 +1,7 @@
 #ifndef _PROC__H_
 #define _PROC__H_
 
-typedef
-    struct process {
+typedef struct process {
 	u16 _pid;
 	u32 _vas;		// Virtual Adddress Size
 	dev_type _wait_on;

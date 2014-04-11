@@ -6,7 +6,7 @@
 
 #define	PAGE_COUNT 65536
 #define	PAGE_MASK	(PAGE_COUNT - 1)
-#define	VAS_VEC_SIZE (1 << 6)
+#define	VAS_VEC_SIZE (1 << 12)
 #define	VAS_VEC_SIZE_MASK (VAS_VEC_SIZE - 1)
 
 // Array of pages
@@ -19,6 +19,8 @@ static u16 page_avail = 0;
 static mem_manage mem_man[PAGE_COUNT] = { 0 };
 
 static u16 mem_offset = 1;
+
+// Bitmap. 64 levels of 64 bits. each bit is a chunk of 4mb that represents a page table. 
 static u64 vas_vec[VAS_VEC_SIZE] = { 0 };
 
 static u32 vas_offset = 0;
@@ -64,10 +66,37 @@ void page_free(u16 x)
 	page_avail = x;
 }
 
-// Size is pages you want, array is pages found?
+// Array is the sbt from proc(I believe), size is the number of chunks a process wants.
 int vas_alloc(u16 v[], u32 size)
 {
+	int result = 0;
 
+	if(size <= vas_count)
+	{
+		for(int i = 0; i < size; i++)
+		{
+			// Find a free chunk and record its position
+			u16 bit_pos = (u16) lsb64(vas_vec(vas_offset))
+
+			// Create an address of the chunk level index and position
+			u16 chunk_address = (vas_offset << 6) | (bit_pos)
+
+			// Store address in the passed in array
+			v[i] = chunk_address
+
+
+			// If the lsb returned is 63, then that level of vas_vec is filled and the offset is increased.
+			if(bit_pos == 63)
+			{
+				vas_offset++;
+			}
+		}
+
+		result = 1;
+	}
+
+	return result;
+	one shifted left four or vas_vec[index]
 }
 
 //
