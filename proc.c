@@ -39,7 +39,7 @@ void blocked_deq()
 		{
 			next = current->_next;
 
-			if (current->_time >= time(0))
+			if (current->_time <= time(0))
 			{
 				if (_blocked._head == current)
 				{
