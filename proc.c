@@ -1,10 +1,11 @@
 #include <stdio.h>
-#include <time.h>
+#include <stdlib.h>
 #include "types.h"
 //#include "pid.h"
 #include "mem_man.h"
 #include "proc.h"
 
+static u64	time = 0;
 static u64 time_blocked = 0;
 
 // Create all of the queues
@@ -17,19 +18,33 @@ static int counter = 0;
 
 // initial address, process time, time prediction, priority, and something else
 
-void blocked_enq(process * p, u64 time)
+void blocked_enq(proc p, u64 estimated_time)
 {
-
+	p->_time = time + estimated_time;
+	if (_blocked._head != NULL)
+	{
+		_blocked._head = p;
+	}
+	else
+	{
+		p->_next = _blocked._head;
+		_blocked._head = p;
+	}
 }
 
 void blocked_deq()
 {
-	struct process *current, *previous, *next;
+	proc current = malloc(sizeof(*current));
+	proc previous = malloc(sizeof(*previous)); 
+	proc next = malloc(sizeof(*next));
 
-	if (_blocked._head != NULL && _blocked._head->_next == NULL)
+	if (_blocked._head != NULL)
 	{
-		ready_enq(_blocked._head);
-		_blocked._head = NULL;
+		if (current->_time <= time)
+		{
+			ready_enq(_blocked._head);
+			_blocked._head = NULL;
+		}
 	}
 
 	else
@@ -39,7 +54,7 @@ void blocked_deq()
 		{
 			next = current->_next;
 
-			if (current->_time <= time(0))
+			if (current->_time <= time)
 			{
 				if (_blocked._head == current)
 				{
@@ -61,7 +76,7 @@ void blocked_deq()
 	}
 }
 
-void ready_enq(process *p)
+void ready_enq(proc p)
 {
 	switch (p->_priority)
 	{
@@ -109,9 +124,9 @@ void ready_enq(process *p)
 	}
 }
 
-process *ready_deq(u8 priority)
+proc ready_deq(u8 priority)
 {
-	process *p;
+	proc p;
 
 	switch (priority)
 	{

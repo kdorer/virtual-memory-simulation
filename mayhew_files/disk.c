@@ -2,12 +2,8 @@
 #include	"types.h"
 #include	"util.h"
 
-
-
 #define	SWAP_SIZE		((1 << 6))
 #define	SWAP_SIZE_MASK	(SWAP_SIZE - 1)
-
-
 
 static	u64		avail[SWAP_SIZE]		= {1, 0};
 static	u32		offset					= 0;
@@ -17,15 +13,7 @@ static	u32		read_latency			= 8 << 20;
 static	u32		write_latency			= 8 << 20;
 static	u64		disk_time				= 0;
 
-
-
-
-
-int
-swap_alloc (
-	u16	v[],
-	u32	size
-)
+int swap_alloc (u16	v[], u32	size)
 {
 	u32	i;
 	u32	t;
@@ -44,13 +32,7 @@ swap_alloc (
 }
 
 
-
-
-void
-swap_free (
-	u16	v[],
-	u32	size
-)
+void swap_free (u16	v[], u32	size)
 {
 	u32	i;
 
@@ -59,18 +41,12 @@ swap_free (
 }
 
 
-
 //////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////
 
 
-
-u64
-disk_read (
-	u32	block,
-	u16	addr
-)
+u64 disk_read (u32	block, u16	addr)
 {
 	u32		delta	= rand();
 	if (get_time() > disk_time)	disk_time	 = get_time();
@@ -82,14 +58,7 @@ disk_read (
 	return disk_time;
 }
 
-
-
-
-u64
-disk_write (
-	u32	block,
-	u16	addr
-)
+u64 disk_write (u32	block, u16	addr)
 {
 	u32		delta	= rand();
 	if (get_time() > disk_time)	disk_time	 = get_time();
@@ -100,6 +69,4 @@ disk_write (
 	}
 	return disk_time;
 }
-
-
 
