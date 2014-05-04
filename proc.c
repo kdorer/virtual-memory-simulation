@@ -152,47 +152,112 @@ proc ready_deq(u8 priority)
 	return p;
 }
 
-// void process_execute(process * p, u64 x)
-// {
-// 	while (time < x) {
-// 		time += (*profiles[1]) (code_size, *code_pointer);
+//
+u32 new_code_addr (u32		addr, u32		limit)
+{
+	static u32	x[32]	= {	 1,	 1,	 1,	 1,	 1,	 1,	 1,	 1, 1,	 1,	 1,	 1,	 1,	 1,	 1,	 1, 
+							 2,	 2,	 2,	 2,	 2,	 2,	 2,	 2, 3,	 3,	 3,	 3,	 4,	 4,	 8,	16};
 
-// 		if (!mem_read(p, code_pointer)) {
-// 			blocked_enq(p);
-// 			return;
-// 		}
+	u32	r = rand();
+	addr	=  (r & 64) ? addr + x[r & 31] : addr - x[r & 31];
+	return (addr > limit) ? addr = r % limit : addr;
+}
 
-// 		time += (*profiles[2]) (data_size, *data_pointer);
+//
+u64 new_code_time ()
+{
+	return	50 + (rand() & 0xfff);
+}
 
-// 		if (!mem_read(p, data_pointer)) {
-// 			blocked_enq(p);
-// 			return;
-// 		}
+//
+u32 new_data_addr (u32	addr, u32		base, u32	limit)
+{
+	static u32	x[32]	= {	 1,	 1,	 1,	 1,	 2,	 2,	 2,	 2,	 3,	 3,	 3,	 3,	 4,	 4,	 4,	 4, 
+							 5,	 5,	 6,	 6,	 7,	 7,	 8,	 8,	 9,	10,	11,	12,	16,	20,	28,	40};
 
-// 		time += (*profiles[1]) (code_size, *data_pointer);
+	u32	r = rand();
+	addr	=  (r & 64) ? addr + x[r & 31] : addr - x[r & 31];
+	return ((base < addr) || (addr > limit)) ? addr = base + (r % (limit - base)) : addr;
+}
 
-// 		if (!mem_write(p, code_pointer)) {
-// 			blocked_enq(p);
-// 			return;
-// 		}
+//
+u64 new_data_time ()
+{
+	return	100 + (rand() & 0x1fff);
+}
 
-// 		time += (*profiles[2]) (data_size, *data_pointer);
+//
+u64 get_time()
+{
+	return time;
+}
 
-// 		if (!mem_read(p, data_pointer)) {
-// 			blocked_enq(p);
-// 			return;
-// 		}
-// 	}
+//
+u64 process_exec (u64	t, u32 code_addr, u32	code_time, u32 code_limit, u32	data_addr, u32 data_time, u32 data_limit)
+{
+	u64	time	= get_time();
+	u32	i;
 
-// 	ready_enq(2 p);
+	u32	code_trans = virt_to_phys(code_addr);
+	u32	data_trans = virt_to_phys(data_addr);
 
-// 	cbar.comtime += (*profiles[2]) (data_size, *data_pointer);
+	if (!code_trans) 
+	{
+		//blocked_enq();
+		u16 alloc = page_alloc();
 
-// 	if (!mem_read(p, data_pointer)) {
-// 		blocked_enq(p);
-// 		return;
-// 	}
-// }
+		if (!alloc)
+		{
+			u16 swap_page = walk_page_ring();
+			page_free(swap_page);
+			alloc = page_alloc();
+		}
+		//
+		//disk_read(code_addr, alloc);
+
+	}
+
+	if (!data_trans) 
+	{
+		//page_fault code
+	}
+
+	while (1) {
+		u32	t_t_t	= t - get_time(); //time_till_timer
+		if (code_time < data_time) {
+			if (code_time > t_t_t) {
+				code_time -= t_t_t;
+				data_time -= t_t_t;
+				return t;
+			}
+			set_time (get_time() + code_time);
+			data_time  -= code_time;
+			code_addr	= new_code_addr(code_addr, proc_code_limit);
+			code_time	= new_code_time();
+			code_trans	= virt_to_phys_read(code_addr);
+			if (!code_trans) {
+				//page_fault code
+				return disk_time();
+			}
+		}
+		else if (data_time > t_t_t) {
+			code_time -= t_t_t;
+			data_time -= t_t_t;
+			return t;
+		}
+		else {
+			set_time (get_time() + data_time);
+			code_time  -= data_time;
+			data_addr	= new_data_addr(data_addr, proc_code_limit, proc_data_limit);
+			data_time	= new_data_time();
+			data_trans	= virt_to_phys_write(data_addr);
+			if (!data_trans) {
+				//page_fault code
+				return disk_time();
+			}
+		}
+	}
+}
 
 // Initialize values in the queues
 void init_queues()
@@ -207,6 +272,12 @@ void init_queues()
 
 	_low._head = NULL;
 	_low._tail = NULL;
+}
+
+// Initializes a process
+void init_process()
+{
+	
 }
 
 // Checks ready queues first, 4 from high, 2 from medium, 1 from low

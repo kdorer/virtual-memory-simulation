@@ -6,7 +6,7 @@
 
 #define	PAGE_COUNT 65536
 #define	PAGE_MASK	(PAGE_COUNT - 1)
-#define	VAS_VEC_SIZE (1 << 12)
+#define	VAS_VEC_SIZE (1 << 6)
 #define	VAS_VEC_SIZE_MASK (VAS_VEC_SIZE - 1)
 
 // Array of pages
@@ -130,8 +130,15 @@ void vas_free(u16 v[], u32 size)
 // Set used to 0 for each page.
 u16 walk_page_ring()
 {
+	u16 temp = 0;
 	for(int i; i < PAGE_COUNT; i++)
 	{
+		if(!mem_man[i])
+		{
+			temp = i;
+			break;
+		}
 		mem_man[i] = mem_man[i]._used & 0;
 	}
+	return temp;
 }
