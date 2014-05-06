@@ -13,7 +13,7 @@
 static page mem[PAGE_COUNT];
 
 // first available page
-static u16 page_avail = 0;
+static u16 page_avail = 1;
 
 // Status control of memory
 static mem_manage mem_man[PAGE_COUNT] = { 0 };
@@ -48,7 +48,24 @@ void set_used(u16 y)
 
 void set_pinned(u16 y)
 {
-	mem_man[y]._used = 1;
+	mem_man[y]._pinned = 1;
+}
+
+void clear_pinned(u16 y)
+{
+	mem_man[y]._pinned = 0;
+}
+
+void insert_address(u16 y, int index, u16 addr)
+{
+	mem[y]._u32[index] = addr;
+}
+
+u16 get_address(u16 y, int index)
+{
+	u32 a = mem[y]._u32[index];
+	u16 b = a & 0xFFFF;
+	return b;
 }
 
 // Creates page at page_avail, if page_avail is not 0. 
@@ -57,7 +74,8 @@ void set_pinned(u16 y)
 u16 page_alloc()
 {
 	u16 t = page_avail;
-	if (page_avail) {
+	if (page_avail)
+	{
 		page_avail = mem[page_avail]._u16[0];
 	}
 	return t;
@@ -70,12 +88,21 @@ void page_free(u16 x)
 {
 	if (mem_man[x]._dirty)
 	{
-		printf("Page %d is dirty and will be written to disk\n", x);
+		//printf("Page %d is dirty and will be written to disk\n", x);
 		read_page(x);
 	}
 
 	mem[x]._u16[0] = page_avail;
 	page_avail = x;
+}
+
+void emancipation_proclamation()
+{
+	u16 i;
+	for (i = 1; i < PAGE_COUNT - 1; i++)
+	{
+		mem[i]._u16[0] = i+1;
+	}
 }
 
 //
@@ -106,7 +133,7 @@ u32 virt_to_phys(u32 addr, proc p)
 //
 void page_fault(u32 addr, proc p)
 {
-	printf("Process %d faulted on address %d\n", p, addr);
+	printf("Process %d faulted on address %d\n", p->_pid, addr);
 
 	u16 alloc = page_alloc();
 
@@ -116,7 +143,15 @@ void page_fault(u32 addr, proc p)
 		page_free(swap_page);
 		alloc = page_alloc();
 	}
+
+	u32 l1_index = addr >> 22;
+	u32 l2_index = ((addr >> 12) & 0x3FF);
+	u16 l1_addr = p->_pid;
+	page l1 = mem[l1_addr];
+	u32 l2_addr = l1._u32[l1_index];
+
 	u64 d_time = disk_read(addr, alloc);
+	insert_address(l2_addr, l2_index, alloc);
 	blocked_enq(p, d_time);
 }
 
@@ -195,7 +230,7 @@ u16 walk_page_ring()
 			temp = i;
 			break;
 		}
-		mem_man[i] = mem_man[i]._used & 0;
+		mem_man[i]._used = 0;
 	}
 	return temp;
 }

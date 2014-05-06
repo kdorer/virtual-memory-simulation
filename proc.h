@@ -12,13 +12,17 @@ struct process {
 	u8 _priority;
 	u64 _time;
 
+	int _run_counter;
+
 	u64 _blocked_timer;
 
 	u32* _code_addr;
-	u32* _code_time;
+	u64 _code_time;
+	u32 _code_size;
 
 	u32* _data_addr;
-	u32* _data_time;
+	u64 _data_time;
+	u32 _data_size;
 	
 	proc _next;
 	
@@ -45,7 +49,7 @@ u64 time_get();
 void set_time(u64 t);
 
 void init_queues();
-void init_process(u8 p, u32 csize, u32 dsize, u64 t);
+int init_process(u8 p, u32 csize, u32 dsize, u64 t);
 
 u32 new_code_addr (u32		addr, u32		limit);
 u64 new_code_time ();

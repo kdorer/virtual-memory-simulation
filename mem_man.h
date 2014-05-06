@@ -22,14 +22,21 @@ page get_page(u32 addr);
 
 void set_used(u16 y);
 void set_pinned(u16 y);
+void clear_pinned(u16 y);
+
+void insert_address(u16 y, int index, u16 addr);
+u16 get_address(u16 y, int index);
 
 u16 page_alloc();
 void page_free(u16 x);
+void emancipation_proclamation();
 
 int vas_alloc(u16 v[], u32 size);
 void vas_free(u16 v[], u32 size);
 
 u32 virt_to_phys(u32 addr, proc p);
 void page_fault(u32 addr, proc p);
+
+u16 walk_page_ring();
 
 #endif

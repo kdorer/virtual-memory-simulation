@@ -113,6 +113,9 @@ struct	{
 int main()
 {
 	int counter = 0;
+	init_queues();
+	set_time(time_get() + 20);
+	emancipation_proclamation();
 
 	do
 	{
@@ -127,6 +130,6 @@ int main()
 		}
 		scheduler();
 	}
-	while(proc_init[counter] != '\0');
+	while(counter < 100);
 }
 

@@ -51,9 +51,9 @@ u64 disk_read (u32	block, u16	addr)
 
 	u32	delta	= rand();
 
-	if (get_time() > disk_time)
+	if (time_get() > disk_time)
 	{
-		disk_time	 = get_time();
+		disk_time	 = time_get();
 	}
 
 	if (delta & 1) 
@@ -79,7 +79,7 @@ u64 disk_write (u32	block, u16	addr)
 {
 	u32		delta	= rand();
 
-	if (get_time() > disk_time)	disk_time	 = get_time();
+	if (time_get() > disk_time)	disk_time	 = time_get();
 
 	if (delta & 1)
 	{

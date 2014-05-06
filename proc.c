@@ -23,7 +23,7 @@ void blocked_enq(proc p, u64 estimated_time)
 	printf("Placing process %d in the blocked queue\n", p->_pid);
 
 	p->_blocked_timer = time_get() + estimated_time;
-	if (_blocked._head != NULL)
+	if (_blocked._head == NULL)
 	{
 		_blocked._head = p;
 	}
@@ -36,16 +36,20 @@ void blocked_enq(proc p, u64 estimated_time)
 
 void blocked_deq()
 {
-	printf("Removing process %d from the blocked queue\n", p->_pid);
+	if (_blocked._head == NULL)
+	{
+		return;
+	}
 
 	proc current = malloc(sizeof(*current));
 	proc previous = malloc(sizeof(*previous)); 
 	proc next = malloc(sizeof(*next));
 
-	if (_blocked._head != NULL)
+	if (_blocked._head->_next == NULL)
 	{
 		if (current->_blocked_timer <= time_get())
 		{
+			printf("Removing process %d from the blocked queue\n", _blocked._head->_pid);
 			ready_enq(_blocked._head);
 			_blocked._head = NULL;
 		}
@@ -68,6 +72,7 @@ void blocked_deq()
 				previous->_next = next;
 				current->_next = NULL;
 				ready_enq(current);
+				printf("Removing process %d from the blocked queue\n", current->_pid);
 			}
 
 			else
@@ -78,6 +83,9 @@ void blocked_deq()
 			current = next;
 		} while(current != NULL);
 	}
+	free(current);
+	free(previous);
+	free(next);
 }
 
 void ready_enq(proc p)
@@ -137,21 +145,42 @@ proc ready_deq(u8 priority)
 	switch (priority)
 	{
 		case 1:
+
+			if (_high._head == NULL)
+			{
+				return NULL;
+			}
+
 			p = _high._head;
 			_high._head = p->_next;
 			p->_next = NULL;
+			printf("Scheduling a process from high priority queue\n");
 			break;
 
 		case 2:
+
+			if (_medium._head == NULL)
+			{
+				return NULL;
+			}
+
 			p = _medium._head;
 			_medium._head = p->_next;
 			p->_next = NULL;
+			printf("Scheduling a process from medium priority queue\n");
 			break;
 
 		case 3:
+
+			if (_low._head == NULL)
+			{
+				return NULL;
+			}
+
 			p = _low._head;
 			_low._head = p->_next;
 			p->_next = NULL;
+			printf("Scheduling a process from low priority queue\n");
 			break;
 	}
 
@@ -195,7 +224,7 @@ u64 new_data_time ()
 }
 
 //
-u64 get_time()
+u64 time_get()
 {
 	return time;
 }
@@ -206,9 +235,10 @@ void set_time(u64 t)
 }
 
 //
-void process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
+void process_exec (proc p)
 {
-	u64	t	= get_time();
+
+	printf("Executing process %d\n", p->_pid);
 
 	u32	code_trans = virt_to_phys(p->_code_addr, p);
 	u32	data_trans = virt_to_phys(p->_data_addr, p);
@@ -252,7 +282,7 @@ void process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
 				set_time(time_get() + p->_code_time);
 				timer -= p->_code_time;
 
-				p->_code_addr	= new_code_addr(p->_code_addr, code_limit);
+				p->_code_addr	= new_code_addr(p->_code_addr, p->_code_size);
 				p->_code_time	= new_code_time();
 				code_trans	= virt_to_phys(p->_code_addr, p);
 			}
@@ -285,7 +315,7 @@ void process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
 				set_time (time_get() + p->_data_time);
 				timer -= p->_data_time;
 
-				p->_data_addr	= new_data_addr(p->_data_addr, code_limit, data_limit);
+				p->_data_addr	= new_data_addr(p->_data_addr, p->_code_size, p->_data_size);
 				p->_data_time	= new_data_time();
 				data_trans	= virt_to_phys(p->_data_addr, p);
 			}
@@ -298,6 +328,23 @@ void process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
 
 			set_used(data_trans);
 		}
+	}
+
+	p->_run_counter--;
+
+	if (!p->_run_counter)
+	{
+		vas_free(p->_sbt, p->_vas);
+
+		int i;
+		for (i = 0; i < p->_vas; i++)
+		{
+			u16 l2 = get_address(p->_pid, i);
+			clear_pinned(l2);
+		}
+		clear_pinned(p->_pid);
+
+		free(p);
 	}
 }
 
@@ -319,9 +366,11 @@ void init_queues()
 // Initializes a process
 int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 {
-	proc new_process = malloc(sizeof(*new_process));
+	proc new_process;
+	new_process = malloc(sizeof(*new_process));
+	if (new_process == NULL) return 9;
 
-	new_process->_vas = ceil( ( ( (csize + dsize) / 1024.0) / 1024.0) / 4.0);
+	new_process->_vas = ( ( ( (csize + dsize) / 1000) / 1000) / 4);
 
 	int enough_space = vas_alloc(new_process->_sbt, new_process->_vas);
 
@@ -332,9 +381,14 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 
 		new_process->_code_addr = 0;
 	  new_process->_code_time = new_code_time();
+	  new_process->_code_size = csize;
 
-		new_process->_data_addr = NULL;
+		new_process->_data_addr = csize + 1;
 		new_process->_data_time = new_data_time();
+		new_process->_data_size = dsize;	
+
+		new_process->_run_counter = 5;
+		new_process->_next = NULL;
 
 		u16 alloc = page_alloc();
 
@@ -360,7 +414,7 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 				alloc = page_alloc();
 			}
 
-			mem[new_process->_pid]._u32[i] = alloc;
+			insert_address(new_process->_pid, i, alloc);
 			set_pinned(alloc);
 		}
 
@@ -378,23 +432,28 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 // Then looks through blocked to see if anything is finished
 void scheduler()
 {
+	set_time(time_get() + 1000);
+	blocked_deq();
+
+	proc p = malloc(sizeof(*p));
+
 	if (counter < 4)
 	{
-		printf("Scheduling a process from high priority queue");
-		ready_deq(1);
+		p = ready_deq(1);
 		counter++;
 	}
 	else if (counter >= 4 && counter < 7)
 	{
-		printf("Scheduling a process from medium priority queue");
-		ready_deq(2);
+		p = ready_deq(2);
 		counter++;
 	}
 	else
 	{
-		printf("Scheduling a process from low priority queue");
-		ready_deq(3);
-		counter = 0;
+		p = ready_deq(3);
 	}
-	blocked_deq();
+	if (p != NULL)
+	{
+		process_exec(p);
+	}
+	free(p);
 }
