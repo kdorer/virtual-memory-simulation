@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+
 #include "types.h"
-//#include "pid.h"
 #include "mem_man.h"
 #include "proc.h"
 
@@ -220,11 +221,15 @@ void process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
 		return;
 	}
 
+	set_used(code_trans);
+
 	if (!data_trans) 
 	{
 		page_fault(p->_data_addr, p);
 		return;
 	}
+
+	set_used(data_trans);
 
 	while (timer) 
 	{
@@ -257,6 +262,8 @@ void process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
 				page_fault(p->_code_addr, p);
 				return;
 			}
+
+			set_used(code_trans);
 		}
 
 		else 
@@ -288,6 +295,8 @@ void process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
 				page_fault(p->_data_addr, p);
 				return;
 			}
+
+			set_used(data_trans);
 		}
 	}
 }
@@ -308,11 +317,11 @@ void init_queues()
 }
 
 // Initializes a process
-void init_process(u8 priority, u32 csize, u32 dsize, u64 t)
+int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 {
 	proc new_process = malloc(sizeof(*new_process));
 
-	new_process->_vas = csize + dsize;
+	new_process->_vas = ceil( ( ( (csize + dsize) / 1024.0) / 1024.0) / 4.0);
 
 	int enough_space = vas_alloc(new_process->_sbt, new_process->_vas);
 
@@ -336,13 +345,32 @@ void init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 			alloc = page_alloc();
 		}
 
-		new_process->_pid
+		new_process->_pid = alloc;
+		set_pinned(alloc);
+
+		int i;
+		for(i = 0; i < new_process->_vas; i++)
+		{
+			u16 alloc = page_alloc();
+
+			if (!alloc)
+			{
+				u16 swap_page = walk_page_ring();
+				page_free(swap_page);
+				alloc = page_alloc();
+			}
+
+			mem[new_process->_pid]._u32[i] = alloc;
+			set_pinned(alloc);
+		}
 
 		ready_enq(new_process);
+		return 1;
 	}
 	else
 	{
 		free(new_process);
+		return 0;
 	}
 }
 
@@ -352,17 +380,21 @@ void scheduler()
 {
 	if (counter < 4)
 	{
+		printf("Scheduling a process from high priority queue");
 		ready_deq(1);
 		counter++;
 	}
 	else if (counter >= 4 && counter < 7)
 	{
+		printf("Scheduling a process from medium priority queue");
 		ready_deq(2);
 		counter++;
 	}
 	else
 	{
+		printf("Scheduling a process from low priority queue");
 		ready_deq(3);
 		counter = 0;
 	}
+	blocked_deq();
 }

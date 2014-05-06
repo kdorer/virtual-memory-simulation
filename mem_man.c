@@ -41,6 +41,16 @@ page get_page(u32 addr)
 	return mem[addr];
 }
 
+void set_used(u16 y)
+{
+	mem_man[y]._used = 1;
+}
+
+void set_pinned(u16 y)
+{
+	mem_man[y]._used = 1;
+}
+
 // Creates page at page_avail, if page_avail is not 0. 
 // Page_avail is set to the allocated pages _u16.
 // Return the address of the newly allocated page.
@@ -180,7 +190,7 @@ u16 walk_page_ring()
 	int i;
 	for(i = 0; i < PAGE_COUNT; i++)
 	{
-		if(!(mem_man[i]._used))
+		if(!(mem_man[i]._used) && !(mem_man[i]._pinned))
 		{
 			temp = i;
 			break;

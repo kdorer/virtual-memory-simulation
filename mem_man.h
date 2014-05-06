@@ -20,7 +20,8 @@ void read_page(u16 y);
 void write_page(u16 y);
 page get_page(u32 addr);
 
-void build_mem_avail();
+void set_used(u16 y);
+void set_pinned(u16 y);
 
 u16 page_alloc();
 void page_free(u16 x);

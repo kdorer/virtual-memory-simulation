@@ -110,5 +110,23 @@ struct	{
 				};
 
 
+int main()
+{
+	int counter = 0;
 
+	do
+	{
+		if (time_get() > proc_init[counter]._start_time)
+		{
+			int success = init_process(proc_init[counter]._priority, proc_init[counter]._code_size, proc_init[counter]._data_size, proc_init[counter]._run_time);
+			
+			if (success)
+			{
+				counter++;
+			}
+		}
+		scheduler();
+	}
+	while(proc_init[counter] != '\0');
+}
 
