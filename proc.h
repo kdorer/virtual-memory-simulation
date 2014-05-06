@@ -44,7 +44,7 @@ u64 time_get();
 void time_adv(u32 delta);
 
 void init_queues();
-void init_process( u8 p);
+void init_process(u8 p, u32 csize, u32 dsize, u64 t);
 
 u32 new_code_addr (u32		addr, u32		limit);
 u64 new_code_time ();

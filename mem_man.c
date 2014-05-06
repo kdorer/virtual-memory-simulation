@@ -103,7 +103,8 @@ int vas_alloc(u16 v[], u32 size)
 
 	if(size <= vas_count)
 	{
-		for(int i = 0; i < size; i++)
+		int i;
+		for(i = 0; i < size; i++)
 		{
 			while(vas_vec[vas_offset] == 0xFFFFFFFFFFFFFFFF)
 			{
@@ -115,7 +116,7 @@ int vas_alloc(u16 v[], u32 size)
 			}
 
 			// Find a free chunk and record its position
-			u16 bit_pos = (u16) lsb64(vas_vec(vas_offset));
+			u16 bit_pos = (u16) lsb64(vas_vec[vas_offset]);
 			// Create an address of the chunk level index and position
 			u16 chunk_address = (vas_offset << 8) | (bit_pos);
 			// Store address in the passed in array
@@ -141,7 +142,8 @@ int vas_alloc(u16 v[], u32 size)
 // Array is the sbt from proc(I believe), size is the number of chunks a process wants.
 void vas_free(u16 v[], u32 size)
 {
-	for(int i = 0; i < size; i++)
+	int i;
+	for(i = 0; i < size; i++)
 	{
 		// Get an address of a chunk to be free
 		u16 chunk_address = v[i];
@@ -161,9 +163,10 @@ void vas_free(u16 v[], u32 size)
 u16 walk_page_ring()
 {
 	u16 temp = 0;
-	for(int i; i < PAGE_COUNT; i++)
+	int i;
+	for(i = 0; i < PAGE_COUNT; i++)
 	{
-		if(!mem_man[i])
+		if(!(mem_man[i]._used))
 		{
 			temp = i;
 			break;

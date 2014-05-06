@@ -125,7 +125,7 @@ void ready_enq(proc p)
 
 proc ready_deq(u8 priority)
 {
-	proc p;
+	proc p = malloc(sizeof(*p));
 
 	switch (priority)
 	{
@@ -152,7 +152,7 @@ proc ready_deq(u8 priority)
 }
 
 //
-8new_code_addr (u32		addr, u32		limit)
+u32 new_code_addr (u32		addr, u32		limit)
 {
 	static u32	x[32]	= {	 1,	 1,	 1,	 1,	 1,	 1,	 1,	 1, 1,	 1,	 1,	 1,	 1,	 1,	 1,	 1, 
 							 2,	 2,	 2,	 2,	 2,	 2,	 2,	 2, 3,	 3,	 3,	 3,	 4,	 4,	 8,	16};
@@ -193,7 +193,7 @@ u64 get_time()
 
 void set_time(u32 t)
 {
-	time = time + t;
+	time =  t;
 }
 
 //
@@ -204,8 +204,6 @@ u64 process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
 
 	u32	code_trans = virt_to_phys(p->_code_addr, p);
 	u32	data_trans = virt_to_phys(p->_data_addr, p);
-
-	page cpage = get_page();
 
 	if (!code_trans) 
 	{
@@ -221,14 +219,14 @@ u64 process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
 		//disk_read(code_addr, alloc);
 	}
 
-	page cpage = get_page();
+	//page cpage = get_page();
 
 	if (!data_trans) 
 	{
 		//page_fault code
 	}
 
-	page dpage = get_page();
+	//page dpage = get_page();
 
 	while (1) 
 	{
@@ -246,9 +244,9 @@ u64 process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
 			set_time (get_time() + p->_code_time);
 			p->_data_time  -= p->_code_time;
 
-			p->_code_addr	= new_code_addr(p->_code_addr, proc_code_limit);
+			p->_code_addr	= new_code_addr(p->_code_addr, code_limit);
 			p->_code_time	= new_code_time();
-			p->_code_trans	= virt_to_phys(p->_code_addr);
+			code_trans	= virt_to_phys(p->_code_addr, p);
 
 			if (!code_trans) 
 			{
@@ -271,9 +269,9 @@ u64 process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
 			set_time (get_time() + p->_data_time);
 			p->_code_time  -= p->_data_time;
 
-			p->_data_addr	= new_data_addr(p->_data_addr, proc_code_limit, proc_data_limit);
+			p->_data_addr	= new_data_addr(p->_data_addr, code_limit, data_limit);
 			p->_data_time	= new_data_time();
-			p->_data_trans	= virt_to_phys(p->_data_addr);
+			data_trans	= virt_to_phys(p->_data_addr, p);
 
 			if (!data_trans) 
 			{
@@ -310,7 +308,7 @@ void init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 	new_process->_time = t;
 
 	new_process->_code_addr = 0;
-  new_process-> code_time = new_code_time();
+  new_process->_code_time = new_code_time();
 
 	new_process->_data_addr = NULL;
 	new_process->_data_time = new_data_time();
