@@ -7,9 +7,12 @@ typedef struct process *proc;
 
 struct process {
 	u16 _pid;
+
 	u32 _vas;		// Virtual Adddress Size
 	u8 _priority;
 	u64 _time;
+
+	u64 _blocked_timer;
 
 	u32* _code_addr;
 	u32* _code_time;
@@ -21,8 +24,6 @@ struct process {
 	
 	u16 _pti;		// Page Table Index
 	u16 _sbt[1024];		// Swap Block Table
-	u16 _vas_vector[1024];
-
 } process;
 
 typedef struct blocked {
@@ -41,7 +42,7 @@ void ready_enq(proc p);
 proc ready_deq(u8 priority);
 
 u64 time_get();
-void time_adv(u32 delta);
+void set_time(u64 t);
 
 void init_queues();
 void init_process(u8 p, u32 csize, u32 dsize, u64 t);

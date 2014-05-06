@@ -47,6 +47,8 @@ void swap_free (u16	v[], u32	size)
 
 u64 disk_read (u32	block, u16	addr)
 {
+	printf("Reading block %d from disk\n", block);
+
 	u32	delta	= rand();
 
 	if (get_time() > disk_time)
@@ -66,7 +68,8 @@ u64 disk_read (u32	block, u16	addr)
 
 	if (block < SWAP_SIZE) 
 	{
-		read_page(block, addr);
+		//Create some garbage page that represents data from disk
+		write_page(addr);
 	}
 
 	return disk_time;
@@ -75,12 +78,24 @@ u64 disk_read (u32	block, u16	addr)
 u64 disk_write (u32	block, u16	addr)
 {
 	u32		delta	= rand();
+
 	if (get_time() > disk_time)	disk_time	 = get_time();
-	if (delta & 1)		disk_time	+= write_latency + (delta & 0x3FFFFF);
-	else				disk_time	+= write_latency - (delta & 0x1FFFFF);
-	if (block < SWAP_SIZE) {
-		write_page(block, addr);
+
+	if (delta & 1)
+	{
+		disk_time	+= write_latency + (delta & 0x3FFFFF);
 	}
+
+	else
+	{
+		disk_time += write_latency - (delta & 0x1FFFFF);
+	}
+
+	if (block < SWAP_SIZE) 
+	{
+		read_page(addr);
+	}
+
 	return disk_time;
 }
 

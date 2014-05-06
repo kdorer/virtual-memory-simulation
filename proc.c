@@ -19,7 +19,9 @@ static u64 time_blocked = 0;
 
 void blocked_enq(proc p, u64 estimated_time)
 {
-	p->_time = time + estimated_time;
+	printf("Placing process %d in the blocked queue\n", p->_pid);
+
+	p->_blocked_timer = time_get() + estimated_time;
 	if (_blocked._head != NULL)
 	{
 		_blocked._head = p;
@@ -33,13 +35,15 @@ void blocked_enq(proc p, u64 estimated_time)
 
 void blocked_deq()
 {
+	printf("Removing process %d from the blocked queue\n", p->_pid);
+
 	proc current = malloc(sizeof(*current));
 	proc previous = malloc(sizeof(*previous)); 
 	proc next = malloc(sizeof(*next));
 
 	if (_blocked._head != NULL)
 	{
-		if (current->_time <= time)
+		if (current->_blocked_timer <= time_get())
 		{
 			ready_enq(_blocked._head);
 			_blocked._head = NULL;
@@ -53,7 +57,7 @@ void blocked_deq()
 		{
 			next = current->_next;
 
-			if (current->_time <= time)
+			if (current->_blocked_timer <= time_get())
 			{
 				if (_blocked._head == current)
 				{
@@ -77,6 +81,8 @@ void blocked_deq()
 
 void ready_enq(proc p)
 {
+	printf("Placing process %d in the ready queue\n", p->_pid);
+
 	switch (p->_priority)
 	{
 		case 1 :
@@ -148,6 +154,8 @@ proc ready_deq(u8 priority)
 			break;
 	}
 
+	printf("Removing process %d from the ready queue\n", p->_pid);
+
 	return p;
 }
 
@@ -191,95 +199,95 @@ u64 get_time()
 	return time;
 }
 
-void set_time(u32 t)
+void set_time(u64 t)
 {
 	time =  t;
 }
 
 //
-u64 process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
+void process_exec (u64	t, proc p, u32 code_limit, u32 data_limit)
 {
-	u64	time	= get_time();
-	u32	i;
+	u64	t	= get_time();
 
 	u32	code_trans = virt_to_phys(p->_code_addr, p);
 	u32	data_trans = virt_to_phys(p->_data_addr, p);
 
+	u64 timer = p->_time;
+
 	if (!code_trans) 
 	{
-		blocked_enq(p, time);
-		u16 alloc = page_alloc();
-
-		if (!alloc)
-		{
-			u16 swap_page = walk_page_ring();
-			page_free(swap_page);
-			alloc = page_alloc();
-		}
-		//disk_read(code_addr, alloc);
+		page_fault(p->_code_addr, p);
+		return;
 	}
-
-	//page cpage = get_page();
 
 	if (!data_trans) 
 	{
-		//page_fault code
+		page_fault(p->_data_addr, p);
+		return;
 	}
 
-	//page dpage = get_page();
-
-	while (1) 
+	while (timer) 
 	{
-		u32	t_t_t	= p->_time; //time_till_timer
-
 		if (p->_code_time < p->_data_time) 
 		{
-			if (p->_code_time > t_t_t) 
+			if (p->_code_time > timer) 
 			{
-				p->_code_time -= t_t_t;
-				p->_data_time -= t_t_t;
-				return t;
+				printf("Process %d ran out of time\n", p->_pid);
+
+				p->_code_time -= timer;
+				set_time(time_get() + timer);
+				timer -= timer;
+
+				ready_enq(p);
+				return;
 			}
 
-			set_time (get_time() + p->_code_time);
-			p->_data_time  -= p->_code_time;
+			else
+			{
+				set_time(time_get() + p->_code_time);
+				timer -= p->_code_time;
 
-			p->_code_addr	= new_code_addr(p->_code_addr, code_limit);
-			p->_code_time	= new_code_time();
-			code_trans	= virt_to_phys(p->_code_addr, p);
+				p->_code_addr	= new_code_addr(p->_code_addr, code_limit);
+				p->_code_time	= new_code_time();
+				code_trans	= virt_to_phys(p->_code_addr, p);
+			}
 
 			if (!code_trans) 
 			{
-				//page_fault code
-				return disk_time();
+				page_fault(p->_code_addr, p);
+				return;
 			}
-
-			//read
 		}
 
 		else 
 		{
-			if (p->_data_time > t_t_t) 
+			if (p->_data_time > timer) 
 			{
-				p->_code_time -= t_t_t;
-				p->_data_time -= t_t_t;
-				return t;
+				printf("Process %d ran out of time\n", p->_pid);
+
+				p->_data_time -= timer;
+				set_time(time_get() + timer);
+				timer -= timer;
+
+				ready_enq(p);
+				return;
 			}
 
-			set_time (get_time() + p->_data_time);
-			p->_code_time  -= p->_data_time;
+			else
+			{
+				set_time (time_get() + p->_data_time);
+				timer -= p->_data_time;
 
-			p->_data_addr	= new_data_addr(p->_data_addr, code_limit, data_limit);
-			p->_data_time	= new_data_time();
-			data_trans	= virt_to_phys(p->_data_addr, p);
+				p->_data_addr	= new_data_addr(p->_data_addr, code_limit, data_limit);
+				p->_data_time	= new_data_time();
+				data_trans	= virt_to_phys(p->_data_addr, p);
+			}
 
 			if (!data_trans) 
 			{
-				//page_fault code
-				return disk_time();
+				page_fault(p->_data_addr, p);
+				return;
 			}
-
-			//write
 		}
 	}
 }
@@ -302,16 +310,40 @@ void init_queues()
 // Initializes a process
 void init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 {
-	proc new_process;
+	proc new_process = malloc(sizeof(*new_process));
+
 	new_process->_vas = csize + dsize;
-	new_process->_priority = priority;
-	new_process->_time = t;
 
-	new_process->_code_addr = 0;
-  new_process->_code_time = new_code_time();
+	int enough_space = vas_alloc(new_process->_sbt, new_process->_vas);
 
-	new_process->_data_addr = NULL;
-	new_process->_data_time = new_data_time();
+	if (enough_space)
+	{
+		new_process->_priority = priority;
+		new_process->_time = t;
+
+		new_process->_code_addr = 0;
+	  new_process->_code_time = new_code_time();
+
+		new_process->_data_addr = NULL;
+		new_process->_data_time = new_data_time();
+
+		u16 alloc = page_alloc();
+
+		if (!alloc)
+		{
+			u16 swap_page = walk_page_ring();
+			page_free(swap_page);
+			alloc = page_alloc();
+		}
+
+		new_process->_pid
+
+		ready_enq(new_process);
+	}
+	else
+	{
+		free(new_process);
+	}
 }
 
 // Checks ready queues first, 4 from high, 2 from medium, 1 from low

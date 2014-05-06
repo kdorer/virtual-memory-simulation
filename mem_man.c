@@ -26,23 +26,14 @@ static u64 vas_vec[VAS_VEC_SIZE] = { 0 };
 static u32 vas_offset = 0;
 static u32 vas_count = VAS_VEC_SIZE;
 
-// Read the contents of page y in memory into page x.
-void write_page(page * x, u16 y)
+void read_page(u16 y)
 {
-	u32 i;
-	for (i = 0; i < 512; ++i) {
-		x->_u64[i] = mem[y]._u64[i];
-	}
+	printf("Reading the contents of page %d\n", y);
 }
-
-// Writing the contents of page x into page y in memory. 
-void read_page(page * x, u16 y)
+ 
+void write_page(u16 y)
 {
-	u32 i;
-	for (i = 0; i < 512; ++i) {
-		mem[y]._u64[i] = x->_u64[i];
-		// Should change dirty bit here because content has been changed?
-	}
+	printf("Writing into page %d\n", y);
 }
 
 page get_page(u32 addr)
@@ -67,6 +58,12 @@ u16 page_alloc()
 // page_avail is then set to the address of the new page.
 void page_free(u16 x)
 {
+	if (mem_man[x]._dirty)
+	{
+		printf("Page %d is dirty and will be written to disk\n", x);
+		read_page(x);
+	}
+
 	mem[x]._u16[0] = page_avail;
 	page_avail = x;
 }
@@ -94,6 +91,23 @@ u32 virt_to_phys(u32 addr, proc p)
 		return 0;
 	}
 	return phys_addr;
+}
+
+//
+void page_fault(u32 addr, proc p)
+{
+	printf("Process %d faulted on address %d\n", p, addr);
+
+	u16 alloc = page_alloc();
+
+	if (!alloc)
+	{
+		u16 swap_page = walk_page_ring();
+		page_free(swap_page);
+		alloc = page_alloc();
+	}
+	u64 d_time = disk_read(addr, alloc);
+	blocked_enq(p, d_time);
 }
 
 // Array is the sbt from proc(I believe), size is the number of chunks a process wants.
