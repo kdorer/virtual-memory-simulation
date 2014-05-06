@@ -22,7 +22,7 @@ void blocked_enq(proc p, u64 estimated_time)
 {
 	printf("Placing process %d in the blocked queue\n", p->_pid);
 
-	p->_blocked_timer = time_get() + estimated_time;
+	p->_blocked_timer = estimated_time;
 	if (_blocked._head == NULL)
 	{
 		_blocked._head = p;
@@ -41,13 +41,12 @@ void blocked_deq()
 		return;
 	}
 
-	proc current = malloc(sizeof(*current));
-	proc previous = malloc(sizeof(*previous)); 
-	proc next = malloc(sizeof(*next));
+	proc cp = malloc(sizeof(*cp));
+  proc pp = malloc(sizeof(*pp));
 
 	if (_blocked._head->_next == NULL)
 	{
-		if (current->_blocked_timer <= time_get())
+		if (cp->_blocked_timer <= time_get())
 		{
 			printf("Removing process %d from the blocked queue\n", _blocked._head->_pid);
 			ready_enq(_blocked._head);
@@ -57,35 +56,29 @@ void blocked_deq()
 
 	else
 	{
-		current = _blocked._head;
 		do
 		{
-			next = current->_next;
-
-			if (current->_blocked_timer <= time_get())
+			if (cp->_blocked_timer <= time_get())
 			{
-				if (_blocked._head == current)
+				if (_blocked._head == cp)
 				{
-					_blocked._head = next;
+					_blocked._head = cp->_next;
 				}
 
-				previous->_next = next;
-				current->_next = NULL;
-				ready_enq(current);
-				printf("Removing process %d from the blocked queue\n", current->_pid);
+				pp->_next = cp->_next;
+				cp->_next = NULL;
+				ready_enq(cp);
+				printf("Removing process %d from the blocked queue\n", cp->_pid);
 			}
 
 			else
 			{
-				previous = current;
+				pp = cp;
 			}
 
-			current = next;
-		} while(current != NULL);
+			cp = cp->_next;
+		} while(cp != NULL);
 	}
-	free(current);
-	free(previous);
-	free(next);
 }
 
 void ready_enq(proc p)
@@ -343,6 +336,7 @@ void process_exec (proc p)
 			clear_pinned(l2);
 		}
 		clear_pinned(p->_pid);
+		printf("Process %d has finished executing", p->_pid);
 
 		free(p);
 	}
@@ -366,29 +360,27 @@ void init_queues()
 // Initializes a process
 int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 {
-	proc new_process;
-	new_process = malloc(sizeof(*new_process));
-	if (new_process == NULL) return 9;
+	proc np = malloc(sizeof(*np));
 
-	new_process->_vas = ( ( ( (csize + dsize) / 1000) / 1000) / 4);
+	np->_vas = ( ( ( (csize + dsize) / 1000) / 1000) / 4);
 
-	int enough_space = vas_alloc(new_process->_sbt, new_process->_vas);
+	int enough_space = vas_alloc(np->_sbt, np->_vas);
 
 	if (enough_space)
 	{
-		new_process->_priority = priority;
-		new_process->_time = t;
+		np->_priority = priority;
+		np->_time = t;
 
-		new_process->_code_addr = 0;
-	  new_process->_code_time = new_code_time();
-	  new_process->_code_size = csize;
+		np->_code_addr = 0;
+	  np->_code_time = new_code_time();
+	  np->_code_size = csize;
 
-		new_process->_data_addr = csize + 1;
-		new_process->_data_time = new_data_time();
-		new_process->_data_size = dsize;	
+		np->_data_addr = csize + 1;
+		np->_data_time = new_data_time();
+		np->_data_size = dsize;	
 
-		new_process->_run_counter = 5;
-		new_process->_next = NULL;
+		np->_run_counter = 5;
+		np->_next = NULL;
 
 		u16 alloc = page_alloc();
 
@@ -399,11 +391,11 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 			alloc = page_alloc();
 		}
 
-		new_process->_pid = alloc;
+		np->_pid = alloc;
 		set_pinned(alloc);
 
 		int i;
-		for(i = 0; i < new_process->_vas; i++)
+		for(i = 0; i < np->_vas; i++)
 		{
 			u16 alloc = page_alloc();
 
@@ -414,16 +406,15 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 				alloc = page_alloc();
 			}
 
-			insert_address(new_process->_pid, i, alloc);
+			insert_address(np->_pid, i, alloc);
 			set_pinned(alloc);
 		}
 
-		ready_enq(new_process);
+		ready_enq(np);
 		return 1;
 	}
 	else
 	{
-		free(new_process);
 		return 0;
 	}
 }
@@ -432,28 +423,27 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 // Then looks through blocked to see if anything is finished
 void scheduler()
 {
-	set_time(time_get() + 1000);
+	proc gp = malloc(sizeof(*gp));
+	set_time(time_get() + 100000000);
 	blocked_deq();
-
-	proc p = malloc(sizeof(*p));
 
 	if (counter < 4)
 	{
-		p = ready_deq(1);
+		gp = ready_deq(1);
 		counter++;
 	}
 	else if (counter >= 4 && counter < 7)
 	{
-		p = ready_deq(2);
+		gp = ready_deq(2);
 		counter++;
 	}
 	else
 	{
-		p = ready_deq(3);
+		gp = ready_deq(3);
+		counter = 0;
 	}
-	if (p != NULL)
+	if (gp != NULL)
 	{
-		process_exec(p);
+		process_exec(gp);
 	}
-	free(p);
 }

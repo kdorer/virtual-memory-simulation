@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-typedef struct process *proc;
+typedef struct process* proc;
 
 struct process {
 	u16 _pid;
