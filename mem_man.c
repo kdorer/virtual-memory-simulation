@@ -27,7 +27,7 @@ static u32 vas_offset = 0;
 static u32 vas_count = VAS_VEC_SIZE;
 
 // Read the contents of page y in memory into page x.
-void read_page(page * x, u16 y)
+void write_page(page * x, u16 y)
 {
 	u32 i;
 	for (i = 0; i < 512; ++i) {
@@ -36,13 +36,18 @@ void read_page(page * x, u16 y)
 }
 
 // Writing the contents of page x into page y in memory. 
-void write_page(page * x, u16 y)
+void read_page(page * x, u16 y)
 {
 	u32 i;
 	for (i = 0; i < 512; ++i) {
 		mem[y]._u64[i] = x->_u64[i];
 		// Should change dirty bit here because content has been changed?
 	}
+}
+
+page get_page(u32 addr)
+{
+	return mem[addr];
 }
 
 // Creates page at page_avail, if page_avail is not 0. 
@@ -64,6 +69,31 @@ void page_free(u16 x)
 {
 	mem[x]._u16[0] = page_avail;
 	page_avail = x;
+}
+
+//
+u32 virt_to_phys(u32 addr, proc p)
+{
+	u32 l1_index = addr >> 22;
+	u32 l2_index = ((addr >> 12) & 0x3FF);
+
+	u16 l1_addr = p->_pid;
+	page l1 = mem[l1_addr];
+	u32 l2_addr = l1._u32[l1_index];
+
+	if (!l2_addr)
+	{
+		return 0;
+	}
+
+	page l2 = mem[l2_addr];
+	u32 phys_addr = l2._u32[l2_index];
+
+	if (!phys_addr)
+	{
+		return 0;
+	}
+	return phys_addr;
 }
 
 // Array is the sbt from proc(I believe), size is the number of chunks a process wants.

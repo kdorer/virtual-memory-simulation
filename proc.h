@@ -8,15 +8,20 @@ typedef struct process *proc;
 struct process {
 	u16 _pid;
 	u32 _vas;		// Virtual Adddress Size
-
-	u64 _time;
 	u8 _priority;
+	u64 _time;
+
+	u32* _code_addr;
+	u32* _code_time;
+
+	u32* _data_addr;
+	u32* _data_time;
 	
 	proc _next;
 	
 	u16 _pti;		// Page Table Index
 	u16 _sbt[1024];		// Swap Block Table
-	u16 _vas[1024];
+	u16 _vas_vector[1024];
 
 } process;
 
@@ -29,14 +34,6 @@ typedef struct ready {
 	proc _tail;
 } ready;
 
-typedef	struct	{
-	u64		_t;			// time to which process is allowed to run
-	u32*	_code_addr;
-	u32*	_code_time;
-	u32*	_data_addr;
-	u32*	_data_time;
-} run_time;
-
 void blocked_enq(proc p, u64 estimated_time);
 void blocked_deq();
 
@@ -47,7 +44,7 @@ u64 time_get();
 void time_adv(u32 delta);
 
 void init_queues();
-void init_process();
+void init_process( u8 p);
 
 u32 new_code_addr (u32		addr, u32		limit);
 u64 new_code_time ();

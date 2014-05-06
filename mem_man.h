@@ -18,6 +18,7 @@ typedef struct {
 
 void read_page(page * x, u16 y);
 void write_page(page * x, u16 y);
+page get_page(u32 addr);
 
 void build_mem_avail();
 
@@ -26,5 +27,7 @@ void page_free(u16 x);
 
 int vas_alloc(u16 v[], u32 size);
 void vas_free(u16 v[], u32 size);
+
+u32 virt_to_phys(u32 addr, proc p);
 
 #endif
