@@ -41,8 +41,8 @@ void blocked_deq()
 		return;
 	}
 
-	proc cp = malloc(sizeof(*cp));
-  proc pp = malloc(sizeof(*pp));
+	proc cp = _blocked._head;
+    proc pp;
 
 	if (_blocked._head->_next == NULL)
 	{
@@ -133,7 +133,9 @@ void ready_enq(proc p)
 
 proc ready_deq(u8 priority)
 {
-	proc p = malloc(sizeof(*p));
+	//proc p = malloc(sizeof(*p));
+
+    proc p;
 
 	switch (priority)
 	{
@@ -372,8 +374,8 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 		np->_time = t;
 
 		np->_code_addr = 0;
-	  np->_code_time = new_code_time();
-	  np->_code_size = csize;
+	    np->_code_time = new_code_time();
+	    np->_code_size = csize;
 
 		np->_data_addr = csize + 1;
 		np->_data_time = new_data_time();
@@ -423,25 +425,45 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 // Then looks through blocked to see if anything is finished
 void scheduler()
 {
-	proc gp = malloc(sizeof(*gp));
+    //printf( "we be schedualing dis shit yo");
+	proc gp;
 	set_time(time_get() + 100000000);
 	blocked_deq();
 
-	if (counter < 4)
-	{
-		gp = ready_deq(1);
-		counter++;
-	}
-	else if (counter >= 4 && counter < 7)
-	{
-		gp = ready_deq(2);
-		counter++;
-	}
-	else
-	{
-		gp = ready_deq(3);
-		counter = 0;
-	}
+
+    switch ( counter )
+    {
+        case 0:
+        case 1:
+        case 2:
+        case 3:
+        
+            if ( (gp = ready_deq( 1 )) != NULL )
+            {
+                counter++;
+                break;
+            }
+
+        case 4:
+        case 5:
+        case 6:
+
+            if( (gp = ready_deq( 2 )) != NULL )
+            {
+                counter++;
+                break;
+            }
+        
+        case 7:
+
+            if( (gp = ready_deq( 3 )) != NULL )
+            {
+                counter = 0;
+            }
+        default:
+            break;
+    }
+
 	if (gp != NULL)
 	{
 		process_exec(gp);
