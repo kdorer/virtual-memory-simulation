@@ -42,9 +42,9 @@ void blocked_deq()
 	}
 
 	proc cp = _blocked._head;
-    proc pp;
+    proc pp = _blocked._head;
 
-	if (_blocked._head->_next == NULL)
+	if (i_blocked._head != NULL && _blocked._head->_next == NULL)
 	{
 		if (cp->_blocked_timer <= time_get())
 		{
@@ -54,7 +54,7 @@ void blocked_deq()
 		}
 	}
 
-	else
+	else if(( _blocked._head != NULL) && (_blocked._head != NULL))
 	{
 		do
 		{
@@ -68,12 +68,13 @@ void blocked_deq()
 				pp->_next = cp->_next;
 				cp->_next = NULL;
 				ready_enq(cp);
-				printf("Removing process %d from the blocked queue\n", cp->_pid);
+				printf("Removing process %d from the fucked queue\n", cp->_pid);
 			}
 
 			else
 			{
-				pp = cp;
+				pp->_next = cp;
+                _blocked._head = _blocked._head.->_next;
 			}
 
 			cp = cp->_next;
@@ -85,9 +86,10 @@ void ready_enq(proc p)
 {
 	printf("Placing process %d in the ready queue\n", p->_pid);
 
-	switch (p->_priority)
+	if( p->_priority )
 	{
-		case 1 :
+		if( p->_priority == 1)
+        {
 			if (_high._head == NULL && _high._tail == NULL)
 			{
 				_high._head = p;
@@ -99,9 +101,10 @@ void ready_enq(proc p)
 				_high._tail->_next = p;
 				_high._tail = p;
 			}
-			break;
+		}
 		
-		case 2 :
+		if(p->_priority == 2)
+        {
 			if (_medium._head == NULL && _medium._tail == NULL)
 			{
 				_medium._head = p;
@@ -113,21 +116,29 @@ void ready_enq(proc p)
 				_medium._tail->_next = p;
 				_medium._tail = p;
 			}
-			break;
+		}
 
-		case 3 :
+		if(p->_priority == 3)
+        {
 			if (_low._head == NULL && _low._tail == NULL)
 			{
-				_low._head = p;
-				_low._tail = p;
+                _low._tail = p;
+                if(_low._tail)
+                {
+				    _low._head = _low._tail;
+                }
 			}
 
 			else
 			{
-				_low._tail->_next = p;
+
+                
+                _low._tail->_next = p;
+                _low._tail->_next = p;
 				_low._tail = p;
+                
 			}
-			break;
+        }
 	}
 }
 
@@ -145,10 +156,18 @@ proc ready_deq(u8 priority)
 			{
 				return NULL;
 			}
-
-			p = _high._head;
-			_high._head = p->_next;
-			p->_next = NULL;
+            else if( _high._head == _high._tail && _high._head != NULL )
+            {
+                p = _high._head;
+                _high._head = NULL;
+                _high._tail = NULL;
+            }
+            else
+            {
+			    p = _high._head;
+			    _high._head = p->_next;
+			    p->_next = NULL;
+            }
 			printf("Scheduling a process from high priority queue\n");
 			break;
 
@@ -158,10 +177,20 @@ proc ready_deq(u8 priority)
 			{
 				return NULL;
 			}
+            else if( _medium._head == _medium._tail && _medium._head != NULL )            
+            {
+                p = _medium._head;
+                _medium._head = NULL;
+                _medium._tail = NULL;
+            }
+            else
+            {
 
-			p = _medium._head;
-			_medium._head = p->_next;
-			p->_next = NULL;
+			    p = _medium._head;
+			    _medium._head = p->_next;
+			    p->_next = NULL;
+            }
+
 			printf("Scheduling a process from medium priority queue\n");
 			break;
 
@@ -171,10 +200,18 @@ proc ready_deq(u8 priority)
 			{
 				return NULL;
 			}
-
-			p = _low._head;
-			_low._head = p->_next;
-			p->_next = NULL;
+            else if( _low._head == _low._tail && _low._head != NULL )   
+            {
+                p = _low._head;
+                _medium._head = NULL;
+                _medium._tail = NULL;
+            }
+            else
+            {
+			    p = _low._head;
+			    _low._head = p->_next;
+			    p->_next = NULL;
+            }
 			printf("Scheduling a process from low priority queue\n");
 			break;
 	}
@@ -417,6 +454,7 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 	}
 	else
 	{
+        free(np);
 		return 0;
 	}
 }

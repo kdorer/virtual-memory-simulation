@@ -24,7 +24,7 @@ static u16 mem_offset = 1;
 static u64 vas_vec[VAS_VEC_SIZE] = { 0 };
 
 static u32 vas_offset = 0;
-static u32 vas_count = VAS_VEC_SIZE;
+static u32 vas_count = 4096;
 
 void read_page(u16 y)
 {

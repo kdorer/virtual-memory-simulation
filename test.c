@@ -7,7 +7,7 @@ struct	{
 	u32			_data_size;
 	u32			_priority;
 } proc_init[100]	= {
-					{	        		(u64) 10,	5100000,		20000000,		30000000,		1	},
+					{	        	(u64) 10,	5100000,		20000000,		30000000,		1	},
 					{	   (u64) 10000000001,	6200000,		40000000,		20000000,		2	},
 					{	   (u64) 10000000200,	7300000,		60000000,		10000000,		3	},
 					{	   (u64) 80000000013,	8400000,		80000000,		90000000,		1	},
@@ -119,8 +119,10 @@ int main()
 
 	do
 	{
-		if (time_get() > proc_init[counter]._start_time)
+        u8 time_test = (time_get() > proc_init[counter]._start_time);
+		if ( time_test )
 		{
+
 			int success = init_process(proc_init[counter]._priority, proc_init[counter]._code_size, proc_init[counter]._data_size, proc_init[counter]._run_time);
 			
 			if (success)
