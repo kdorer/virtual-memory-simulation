@@ -119,7 +119,7 @@ int main()
 
 	do
 	{
-        u8 time_test = (time_get() > proc_init[counter]._start_time);
+    u8 time_test = (time_get() > proc_init[counter]._start_time);
 		if ( time_test )
 		{
 

@@ -15,6 +15,7 @@ static ready _low;
 static int counter = 0;
 static u64	time = 0;
 static u64 time_blocked = 0;
+static u16 num_proc = 1;
 
 // initial address, process time, time prediction, priority, and something else
 
@@ -42,19 +43,19 @@ void blocked_deq()
 	}
 
 	proc cp = _blocked._head;
-    proc pp = _blocked._head;
+  proc pp = _blocked._head;
 
-	if (i_blocked._head != NULL && _blocked._head->_next == NULL)
+	if (_blocked._head != NULL && _blocked._head->_next == NULL)
 	{
 		if (cp->_blocked_timer <= time_get())
 		{
-			printf("Removing process %d from the blocked queue\n", _blocked._head->_pid);
+			printf("Removing process %d from the blocked queue\n", _blocked._head->_pid	);
 			ready_enq(_blocked._head);
 			_blocked._head = NULL;
 		}
 	}
 
-	else if(( _blocked._head != NULL) && (_blocked._head != NULL))
+	else if(( _blocked._head != NULL) && (_blocked._head->_next != NULL))
 	{
 		do
 		{
@@ -63,33 +64,44 @@ void blocked_deq()
 				if (_blocked._head == cp)
 				{
 					_blocked._head = cp->_next;
+					cp->_next = NULL;
+					printf("Removing process %d from the blocked queue\n", cp->_pid	);
+					ready_enq(cp);
+					cp = _blocked._head;
+					pp = cp;
 				}
-
-				pp->_next = cp->_next;
-				cp->_next = NULL;
-				ready_enq(cp);
-				printf("Removing process %d from the fucked queue\n", cp->_pid);
+				else
+				{
+					pp->_next = cp->_next;
+					cp->_next = NULL;
+					printf("Removing process %d from the blocked queue\n", cp->_pid	);
+					ready_enq(cp);
+					cp = pp->_next;
+				}
 			}
 
 			else
 			{
-				pp->_next = cp;
-                _blocked._head = _blocked._head.->_next;
+				if (cp == pp)
+				{
+					cp = cp->_next;
+				}
+				else
+				{
+					cp = cp->_next;
+					pp = pp->_next;
+				}
 			}
-
-			cp = cp->_next;
 		} while(cp != NULL);
 	}
 }
 
 void ready_enq(proc p)
 {
-	printf("Placing process %d in the ready queue\n", p->_pid);
-
 	if( p->_priority )
 	{
 		if( p->_priority == 1)
-        {
+    {
 			if (_high._head == NULL && _high._tail == NULL)
 			{
 				_high._head = p;
@@ -101,10 +113,11 @@ void ready_enq(proc p)
 				_high._tail->_next = p;
 				_high._tail = p;
 			}
+			printf("Placing process %d in the high queue\n", p->_pid	);
 		}
 		
 		if(p->_priority == 2)
-        {
+    {
 			if (_medium._head == NULL && _medium._tail == NULL)
 			{
 				_medium._head = p;
@@ -116,37 +129,30 @@ void ready_enq(proc p)
 				_medium._tail->_next = p;
 				_medium._tail = p;
 			}
+			printf("Placing process %d in the medium queue\n", p->_pid);
 		}
 
 		if(p->_priority == 3)
-        {
+    {
 			if (_low._head == NULL && _low._tail == NULL)
 			{
-                _low._tail = p;
-                if(_low._tail)
-                {
-				    _low._head = _low._tail;
-                }
+				_low._head = p;
+        _low._tail = p;
 			}
 
 			else
-			{
-
-                
-                _low._tail->_next = p;
-                _low._tail->_next = p;
-				_low._tail = p;
-                
+			{    
+        _low._tail->_next = p;
+				_low._tail = p;        
 			}
-        }
+			printf("Placing process %d in the low queue\n", p->_pid	);
+    }
 	}
 }
 
 proc ready_deq(u8 priority)
 {
-	//proc p = malloc(sizeof(*p));
-
-    proc p;
+  proc p;
 
 	switch (priority)
 	{
@@ -156,18 +162,18 @@ proc ready_deq(u8 priority)
 			{
 				return NULL;
 			}
-            else if( _high._head == _high._tail && _high._head != NULL )
-            {
-                p = _high._head;
-                _high._head = NULL;
-                _high._tail = NULL;
-            }
-            else
-            {
-			    p = _high._head;
-			    _high._head = p->_next;
-			    p->_next = NULL;
-            }
+      else if( _high._head == _high._tail && _high._head != NULL )
+      {
+        p = _high._head;
+        _high._head = NULL;
+        _high._tail = NULL;
+      }
+      else
+      {
+		    p = _high._head;
+		    _high._head = p->_next;
+		    p->_next = NULL;
+      }
 			printf("Scheduling a process from high priority queue\n");
 			break;
 
@@ -177,19 +183,19 @@ proc ready_deq(u8 priority)
 			{
 				return NULL;
 			}
-            else if( _medium._head == _medium._tail && _medium._head != NULL )            
-            {
-                p = _medium._head;
-                _medium._head = NULL;
-                _medium._tail = NULL;
-            }
-            else
-            {
+      else if( _medium._head == _medium._tail && _medium._head != NULL )            
+      {
+          p = _medium._head;
+          _medium._head = NULL;
+          _medium._tail = NULL;
+      }
+      else
+      {
 
-			    p = _medium._head;
-			    _medium._head = p->_next;
-			    p->_next = NULL;
-            }
+		    p = _medium._head;
+		    _medium._head = p->_next;
+		    p->_next = NULL;
+		  }
 
 			printf("Scheduling a process from medium priority queue\n");
 			break;
@@ -200,23 +206,23 @@ proc ready_deq(u8 priority)
 			{
 				return NULL;
 			}
-            else if( _low._head == _low._tail && _low._head != NULL )   
-            {
-                p = _low._head;
-                _medium._head = NULL;
-                _medium._tail = NULL;
-            }
-            else
-            {
-			    p = _low._head;
-			    _low._head = p->_next;
-			    p->_next = NULL;
-            }
+      else if( _low._head == _low._tail && _low._head != NULL )   
+      {
+        p = _low._head;
+        _medium._head = NULL;
+        _medium._tail = NULL;
+      }
+      else
+      {
+		    p = _low._head;
+		    _low._head = p->_next;
+		    p->_next = NULL;
+      }
 			printf("Scheduling a process from low priority queue\n");
 			break;
 	}
 
-	printf("Removing process %d from the ready queue\n", p->_pid);
+	printf("Removing process %d from the ready queue\n", p->_pid	);
 
 	return p;
 }
@@ -337,7 +343,6 @@ void process_exec (proc p)
 				p->_data_time -= timer;
 				set_time(time_get() + timer);
 				timer -= timer;
-
 				ready_enq(p);
 				return;
 			}
@@ -371,10 +376,10 @@ void process_exec (proc p)
 		int i;
 		for (i = 0; i < p->_vas; i++)
 		{
-			u16 l2 = get_address(p->_pid, i);
+			u16 l2 = get_address(p->_pti, i);
 			clear_pinned(l2);
 		}
-		clear_pinned(p->_pid);
+		clear_pinned(p->_pti);
 		printf("Process %d has finished executing", p->_pid);
 
 		free(p);
@@ -407,12 +412,15 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 
 	if (enough_space)
 	{
+		np->_pid = num_proc;
+		num_proc++;
+
 		np->_priority = priority;
 		np->_time = t;
 
 		np->_code_addr = 0;
-	    np->_code_time = new_code_time();
-	    np->_code_size = csize;
+    np->_code_time = new_code_time();
+    np->_code_size = csize;
 
 		np->_data_addr = csize + 1;
 		np->_data_time = new_data_time();
@@ -430,7 +438,7 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 			alloc = page_alloc();
 		}
 
-		np->_pid = alloc;
+		np->_pti = alloc;
 		set_pinned(alloc);
 
 		int i;
@@ -445,16 +453,17 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 				alloc = page_alloc();
 			}
 
-			insert_address(np->_pid, i, alloc);
+			insert_address(np->_pti, i, alloc);
 			set_pinned(alloc);
 		}
 
+		printf("Creating new process, id: %d\n", np->_pid);
 		ready_enq(np);
 		return 1;
 	}
 	else
 	{
-        free(np);
+    free(np);
 		return 0;
 	}
 }
@@ -468,42 +477,41 @@ void scheduler()
 	set_time(time_get() + 100000000);
 	blocked_deq();
 
-
-    switch ( counter )
-    {
-        case 0:
-        case 1:
-        case 2:
-        case 3:
-        
-            if ( (gp = ready_deq( 1 )) != NULL )
-            {
-                counter++;
-                break;
-            }
-
-        case 4:
-        case 5:
-        case 6:
-
-            if( (gp = ready_deq( 2 )) != NULL )
-            {
-                counter++;
-                break;
-            }
-        
-        case 7:
-
-            if( (gp = ready_deq( 3 )) != NULL )
-            {
-                counter = 0;
-            }
-        default:
+  switch ( counter )
+  {
+      case 0:
+      case 1:
+      case 2:
+      case 3:
+          if ( (gp = ready_deq( 1 )) != NULL )
+          {
             break;
-    }
+          }
+
+      case 4:
+      case 5:
+      case 6:
+          if( (gp = ready_deq( 2 )) != NULL )
+          {
+            break;
+          }
+      
+      case 7:
+          if( (gp = ready_deq( 3 )) != NULL )
+          {
+          	break;
+          }
+      default:
+      		if(gp == NULL && counter > 3)
+      		{
+      			gp = ready_deq(1);
+      		}
+          break;
+  }
 
 	if (gp != NULL)
 	{
+		counter = counter++ % 7;
 		process_exec(gp);
 	}
 }

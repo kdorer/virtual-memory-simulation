@@ -111,7 +111,7 @@ u32 virt_to_phys(u32 addr, proc p)
 	u32 l1_index = addr >> 22;
 	u32 l2_index = ((addr >> 12) & 0x3FF);
 
-	u16 l1_addr = p->_pid;
+	u16 l1_addr = p->_pti;
 	page l1 = mem[l1_addr];
 	u32 l2_addr = l1._u32[l1_index];
 
@@ -146,7 +146,7 @@ void page_fault(u32 addr, proc p)
 
 	u32 l1_index = addr >> 22;
 	u32 l2_index = ((addr >> 12) & 0x3FF);
-	u16 l1_addr = p->_pid;
+	u16 l1_addr = p->_pti;
 	page l1 = mem[l1_addr];
 	u32 l2_addr = l1._u32[l1_index];
 
