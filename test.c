@@ -120,7 +120,7 @@ int main()
 	do
 	{
     u8 time_test = (time_get() > proc_init[counter]._start_time);
-		if ( time_test )
+		if ( time_test && counter < 100)
 		{
 
 			int success = init_process(proc_init[counter]._priority, proc_init[counter]._code_size, proc_init[counter]._data_size, proc_init[counter]._run_time);
@@ -132,6 +132,6 @@ int main()
 		}
 		scheduler();
 	}
-	while(counter < 100);
+	while((counter < 100) || (empty_queues() == 0));
 }
 

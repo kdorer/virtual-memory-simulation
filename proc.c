@@ -16,6 +16,7 @@ static int counter = 0;
 static u64	time = 0;
 static u64 time_blocked = 0;
 static u16 num_proc = 1;
+static u16 finished = 0;
 
 // initial address, process time, time prediction, priority, and something else
 
@@ -113,7 +114,7 @@ void ready_enq(proc p)
 				_high._tail->_next = p;
 				_high._tail = p;
 			}
-			printf("Placing process %d in the high queue\n", p->_pid	);
+			printf("Placing process %d in the high priority queue\n", p->_pid	);
 		}
 		
 		if(p->_priority == 2)
@@ -129,7 +130,7 @@ void ready_enq(proc p)
 				_medium._tail->_next = p;
 				_medium._tail = p;
 			}
-			printf("Placing process %d in the medium queue\n", p->_pid);
+			printf("Placing process %d in the medium priority queue\n", p->_pid);
 		}
 
 		if(p->_priority == 3)
@@ -145,7 +146,7 @@ void ready_enq(proc p)
         _low._tail->_next = p;
 				_low._tail = p;        
 			}
-			printf("Placing process %d in the low queue\n", p->_pid	);
+			printf("Placing process %d in the low priority queue\n", p->_pid	);
     }
 	}
 }
@@ -174,7 +175,7 @@ proc ready_deq(u8 priority)
 		    _high._head = p->_next;
 		    p->_next = NULL;
       }
-			printf("Scheduling a process from high priority queue\n");
+			printf("Removing process %d from the high priority queue\n", p->_pid	);
 			break;
 
 		case 2:
@@ -197,7 +198,7 @@ proc ready_deq(u8 priority)
 		    p->_next = NULL;
 		  }
 
-			printf("Scheduling a process from medium priority queue\n");
+			printf("Removing process %d from the medium priority queue\n", p->_pid	);
 			break;
 
 		case 3:
@@ -209,8 +210,8 @@ proc ready_deq(u8 priority)
       else if( _low._head == _low._tail && _low._head != NULL )   
       {
         p = _low._head;
-        _medium._head = NULL;
-        _medium._tail = NULL;
+        _low._head = NULL;
+        _low._tail = NULL;
       }
       else
       {
@@ -218,12 +219,9 @@ proc ready_deq(u8 priority)
 		    _low._head = p->_next;
 		    p->_next = NULL;
       }
-			printf("Scheduling a process from low priority queue\n");
+			printf("Removing process %d from the low priority queue\n", p->_pid	);
 			break;
 	}
-
-	printf("Removing process %d from the ready queue\n", p->_pid	);
-
 	return p;
 }
 
@@ -272,9 +270,32 @@ void set_time(u64 t)
 	time =  t;
 }
 
+u16 get_finished()
+{
+	return finished;
+}
+
 //
 void process_exec (proc p)
 {
+
+	if (p->_run_counter < 1)
+	{
+		vas_free(p->_sbt, p->_vas);
+
+		int i;
+		for (i = 0; i < p->_vas; i++)
+		{
+			u16 l2 = get_address(p->_pti, i);
+			page_free();
+			clear_pinned(l2);
+		}
+		clear_pinned(p->_pti);
+		printf("Process %d has finished executing\n", p->_pid);
+		finished++;
+		printf("%d processes have finished executing\n", get_finished());
+		return;
+	}
 
 	printf("Executing process %d\n", p->_pid);
 
@@ -310,8 +331,8 @@ void process_exec (proc p)
 				p->_code_time -= timer;
 				set_time(time_get() + timer);
 				timer -= timer;
-
 				ready_enq(p);
+				p->_run_counter--;
 				return;
 			}
 
@@ -323,6 +344,7 @@ void process_exec (proc p)
 				p->_code_addr	= new_code_addr(p->_code_addr, p->_code_size);
 				p->_code_time	= new_code_time();
 				code_trans	= virt_to_phys(p->_code_addr, p);
+				p->_run_counter--;
 			}
 
 			if (!code_trans) 
@@ -344,6 +366,7 @@ void process_exec (proc p)
 				set_time(time_get() + timer);
 				timer -= timer;
 				ready_enq(p);
+				p->_run_counter--;
 				return;
 			}
 
@@ -355,6 +378,7 @@ void process_exec (proc p)
 				p->_data_addr	= new_data_addr(p->_data_addr, p->_code_size, p->_data_size);
 				p->_data_time	= new_data_time();
 				data_trans	= virt_to_phys(p->_data_addr, p);
+				p->_run_counter--;
 			}
 
 			if (!data_trans) 
@@ -365,24 +389,6 @@ void process_exec (proc p)
 
 			set_used(data_trans);
 		}
-	}
-
-	p->_run_counter--;
-
-	if (!p->_run_counter)
-	{
-		vas_free(p->_sbt, p->_vas);
-
-		int i;
-		for (i = 0; i < p->_vas; i++)
-		{
-			u16 l2 = get_address(p->_pti, i);
-			clear_pinned(l2);
-		}
-		clear_pinned(p->_pti);
-		printf("Process %d has finished executing", p->_pid);
-
-		free(p);
 	}
 }
 
@@ -468,13 +474,22 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 	}
 }
 
+u8 empty_queues()
+{
+	u8 b = (_blocked._head == NULL);
+	u8 h = (_high._head == NULL);
+	u8 m = (_medium._head == NULL);
+	u8 l = (_low._head == NULL);
+	u8 x = (b && h && m && l);
+	return x;
+}
+
 // Checks ready queues first, 4 from high, 2 from medium, 1 from low
 // Then looks through blocked to see if anything is finished
 void scheduler()
 {
-    //printf( "we be schedualing dis shit yo");
 	proc gp;
-	set_time(time_get() + 100000000);
+	set_time(time_get() + 1000000);
 	blocked_deq();
 
   switch ( counter )

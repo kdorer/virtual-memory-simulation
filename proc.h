@@ -47,9 +47,11 @@ proc ready_deq(u8 priority);
 
 u64 time_get();
 void set_time(u64 t);
+u16 get_finished();
 
 void init_queues();
 int init_process(u8 p, u32 csize, u32 dsize, u64 t);
+u8 empty_queues();
 
 u32 new_code_addr (u32		addr, u32		limit);
 u64 new_code_time ();

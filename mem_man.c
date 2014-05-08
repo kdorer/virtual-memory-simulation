@@ -28,12 +28,12 @@ static u32 vas_count = 4096;
 
 void read_page(u16 y)
 {
-	printf("Reading the contents of page %d\n", y);
+	//printf("Reading the contents of page %d\n", y);
 }
  
 void write_page(u16 y)
 {
-	printf("Writing into page %d\n", y);
+	//printf("Writing into page %d\n", y);
 }
 
 page get_page(u32 addr)
@@ -133,7 +133,7 @@ u32 virt_to_phys(u32 addr, proc p)
 //
 void page_fault(u32 addr, proc p)
 {
-	printf("Process %d faulted on address %d\n", p->_pid, addr);
+	//printf("Process %d faulted on address %d\n", p->_pid, addr);
 
 	u16 alloc = page_alloc();
 
