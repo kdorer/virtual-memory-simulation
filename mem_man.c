@@ -28,12 +28,12 @@ static u32 vas_count = 4096;
 
 void read_page(u16 y)
 {
-	//printf("Reading the contents of page %d\n", y);
+	printf("Reading the contents of page %d\n", y);
 }
  
 void write_page(u16 y)
 {
-	//printf("Writing into page %d\n", y);
+	printf("Writing into page %d\n", y);
 }
 
 page get_page(u32 addr)
@@ -59,6 +59,7 @@ void clear_pinned(u16 y)
 void insert_address(u16 y, int index, u16 addr)
 {
 	mem[y]._u32[index] = addr;
+	printf("Placing address %d in index %d of page %d\n", addr, index, y);
 }
 
 u16 get_address(u16 y, int index)
@@ -78,6 +79,11 @@ u16 page_alloc()
 	{
 		page_avail = mem[page_avail]._u16[0];
 	}
+	int i;
+	for(i = 0; i < 512; i++)
+	{
+		mem[t]._u64[i] = 0;
+	}
 	return t;
 }
 
@@ -88,8 +94,7 @@ void page_free(u16 x)
 {
 	if (mem_man[x]._dirty)
 	{
-		//printf("Page %d is dirty and will be written to disk\n", x);
-		read_page(x);
+		printf("Page %d is dirty and will be written to disk\n", x);
 	}
 
 	mem[x]._u16[0] = page_avail;
@@ -133,7 +138,7 @@ u32 virt_to_phys(u32 addr, proc p)
 //
 void page_fault(u32 addr, proc p)
 {
-	//printf("Process %d faulted on address %d\n", p->_pid, addr);
+	printf("Process %d faulted on address %d\n", p->_pid, addr);
 
 	u16 alloc = page_alloc();
 
@@ -142,7 +147,10 @@ void page_fault(u32 addr, proc p)
 		u16 swap_page = walk_page_ring();
 		page_free(swap_page);
 		alloc = page_alloc();
+
+		printf("must swap\n");
 	}
+	printf("Page %d found\n", alloc);
 
 	u32 l1_index = addr >> 22;
 	u32 l2_index = ((addr >> 12) & 0x3FF);

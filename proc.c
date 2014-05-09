@@ -287,7 +287,6 @@ void process_exec (proc p)
 		for (i = 0; i < p->_vas; i++)
 		{
 			u16 l2 = get_address(p->_pti, i);
-			page_free();
 			clear_pinned(l2);
 		}
 		clear_pinned(p->_pti);
@@ -306,6 +305,7 @@ void process_exec (proc p)
 
 	if (!code_trans) 
 	{
+		printf("fault on code\n");
 		page_fault(p->_code_addr, p);
 		return;
 	}
@@ -314,6 +314,7 @@ void process_exec (proc p)
 
 	if (!data_trans) 
 	{
+		printf("fault on data\n");
 		page_fault(p->_data_addr, p);
 		return;
 	}
@@ -349,6 +350,7 @@ void process_exec (proc p)
 
 			if (!code_trans) 
 			{
+				printf("fault on code\n");
 				page_fault(p->_code_addr, p);
 				return;
 			}
@@ -375,7 +377,7 @@ void process_exec (proc p)
 				set_time (time_get() + p->_data_time);
 				timer -= p->_data_time;
 
-				p->_data_addr	= new_data_addr(p->_data_addr, p->_code_size, p->_data_size);
+				p->_data_addr	= new_data_addr(p->_data_addr, p->_code_size, (p->_code_size + p->_data_size));
 				p->_data_time	= new_data_time();
 				data_trans	= virt_to_phys(p->_data_addr, p);
 				p->_run_counter--;
@@ -383,6 +385,7 @@ void process_exec (proc p)
 
 			if (!data_trans) 
 			{
+				printf("fault on data\n");
 				page_fault(p->_data_addr, p);
 				return;
 			}
@@ -440,7 +443,8 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 		if (!alloc)
 		{
 			u16 swap_page = walk_page_ring();
-			page_free(swap_page);
+			int dirty = page_free(swap_page);
+
 			alloc = page_alloc();
 		}
 
@@ -489,7 +493,7 @@ u8 empty_queues()
 void scheduler()
 {
 	proc gp;
-	set_time(time_get() + 1000000);
+	set_time(time_get() + 10000);
 	blocked_deq();
 
   switch ( counter )

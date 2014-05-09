@@ -47,7 +47,7 @@ void swap_free (u16	v[], u32	size)
 
 u64 disk_read (u32	block, u16	addr)
 {
-	//printf("Reading block %d from disk\n", block);
+	printf("Reading block %d from disk\n", block);
 
 	u32	delta	= rand();
 
