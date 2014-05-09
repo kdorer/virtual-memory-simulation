@@ -443,7 +443,7 @@ int init_process(u8 priority, u32 csize, u32 dsize, u64 t)
 		if (!alloc)
 		{
 			u16 swap_page = walk_page_ring();
-			int dirty = page_free(swap_page);
+			page_free(swap_page);
 
 			alloc = page_alloc();
 		}
